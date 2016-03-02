@@ -41,7 +41,12 @@ DarkCyan before you can edit it, so take note of the color that
 was selected first, and re-select it after editing.
 If you ever need the original DarkCyan back, it's RGB(0,128,128).
 
-5) Dot-source the included script (CustomPrompt.ps1) either live
-or in your profile to see the effects for yourself!  I included
-a function to switch out the symbol at the front, but this is really
-just a cosmetic ability for now.
+5) Uncheck "Legacy Mode" in the command prompt properties.
+
+6) Import the module with Import-Module PSCustomPrompt.
+
+7) Customize away!  The prompt settings are located in
+$PSCPSettings.  $PSCPSettings.Segments contains several
+pre-built segments, or you can create your own.  The segments
+in the array $PSCPSetings.Order are rendered into the prompt!
+See the example in Profile.Example.ps1 for samples.
