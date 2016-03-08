@@ -98,82 +98,142 @@ Export-ModuleMember -Function Disable-PSCustomPrompt
 
 
 
+# Render a blend character(s) string
+function Get-PromptBlendString
+{
+  param(
+    [string]$Direction,
+    [int]$BGLeft,
+    [int]$BGRight,
+    [int]$FGLeft,
+    [int]$FGRight
+  )
+  
+  $retstr = ""
+  
+  # Default the blending colors
+  $blend    = ""
+  $blendfg  = $PSColors.PSFore.Code
+  $blendbg  = $PSColors.PSBack.Code
+
+  # Determine blending character & colors
+  if ( $Direction -eq "Right" )
+  {
+    if ( $BGLeft -eq $BGRight )
+    {
+      $blend    = $Symbols.Powerline.RightArrow
+      $blendfg  = $FGLeft # TODO: Use foreground of segment to left or right?
+      $blendbg  = $BGRight
+    }
+    else
+    {
+      $blend    = $Symbols.Powerline.RightBlock
+      $blendfg  = $BGLeft
+      $blendbg  = $BGRight
+    }
+  }
+  elseif ( $Direction -eq "Left" )
+  {
+    if ( $BGLeft -eq $BGRight )
+    {
+      $blend    = $Symbols.Powerline.LeftArrow
+      $blendfg  = $FGLeft # TODO: Use foreground of segment to left or right?
+      $blendbg  = $BGRight
+    }
+    else
+    {
+      $blend    = $Symbols.Powerline.LeftBlock
+      $blendfg  = $BGLeft
+      $blendbg  = $BGRight
+    }
+  }
+  
+  # Write the blending character, if any
+  if ( $blend -ne "" )
+  {
+    $retstr += (Set-TerminalColor -F $blendfg -B $blendbg) + $blend
+  } 
+  
+  return $retstr
+}
+
+
+
 # Prompt rendering function
 function Get-PSCustomPromptRender
 {
+  # Initialize return string
   $retstr = ""
+  
+  # Default the previous colors
+  $prevfg   = $PSColors.PSFore.Code
+  $prevbg   = $PSColors.PSBack.Code
+  $prevmode = "None"
+  
+  # Evaulate each segment
   for ( $i = 0; $i -lt $PSCPSettings.Order.Count; $i++ )
   {
     # Capture current segment
     $segment = $PSCPSettings.Order[$i]
-    
-    # Determine blend colors for end of segment
-    $nextfg  = $PSColors.PSFore.Code
-    $nextbg  = $PSColors.PSBack.Code
-    if ( $i -lt ($PSCPSettings.Order.Count-1) )
+    if ( $segment -ne $null )
     {
-      $nextfg = $PSCPSettings.Order[$i+1].Foreground
-      $nextbg = $PSCPSettings.Order[$i+1].Background
-    }
-
-    # Render the string & check if anything resulted
-    $fg = $segment.Foreground # Helper for render block
-    $bg = $segment.Background # Helper for render block
-    $str = & $segment.Render
-    
-    if ( $str.Length -gt 0 )
-    {
-    
-      # Write the segment in current colors
-      $retstr += ( Set-TerminalColor        `
-        -F $segment.Foreground     `
-        -B $segment.Background ) + `
-        $str
-
-      # Determine blending character & colors
-      $str = ""
-      $blendfg  = $PSColors.PSFore.Code
-      $blendbg  = $PSColors.PSBack.Code
-      if ( $segment.Blend -eq "Right" )
-      {
-        if ( $segment.Background -eq $nextbg )
-        {
-          $str = $Symbols.Powerline.RightArrow
-          $blendfg  = $segment.Foreground
-          $blendbg  = $segment.Background
-        }
-        else
-        {
-          $str = $Symbols.Powerline.RightBlock
-          $blendfg  = $segment.Background
-          $blendbg  = $nextbg
-        }
-      }
-      elseif ( $segment.Blend -eq "Left" )
-      {
-        if ( $segment.Background -eq $nextbg )
-        {
-          $str = $Symbols.Powerline.LeftArrow
-          $blendfg  = $segment.Foreground
-          $blendbg  = $segment.Background
-        }
-        else
-        {
-          $str = $Symbols.Powerline.LeftBlock
-          $blendfg  = $segment.Background
-          $blendbg  = $nextbg
-        }
-      }
+      # Helpers for render block
+      $_  = $segment
+      $fg = $segment.Foreground
+      $bg = $segment.Background
       
-      # Write the blending character, if any
-      if ( $str -ne "" )
+      # Render the string & check if anything resulted
+      $str = ""
+      if ( $segment.Render -ne $null -and
+           $segment.Render -is [scriptblock] )
       {
-        $retstr += (Set-TerminalColor -F $blendfg -B $blendbg) + $str
+        $str = & $segment.Render
+      }
+
+      # Check if anything was produced - if not, skip the segment
+      if ( $str -ne $null    -and `
+           $str -is [string] -and `
+           $str.Length -gt 0 )
+      {
+        # Create the segment blend
+        $blend = Get-PromptBlendString   `
+          -Direction $prevmode           `
+          -FGLeft    $prevfg             `
+          -BGLeft    $prevbg             `
+          -FGRight   $segment.Foreground `
+          -BGRight   $segment.Background
+        
+        # Write the blending character, if any
+        if ( $blend -ne "" )
+        {
+          $retstr += (Set-TerminalColor -F $blendfg -B $blendbg) + $blend
+        }    
+      
+        # Write the segment in current colors
+        $retstr += ( Set-TerminalColor `
+          -F $segment.Foreground       `
+          -B $segment.Background ) +   `
+          $str
+
+        # Save the blending information of current segment
+        $prevfg   = $segment.Foreground
+        $prevbg   = $segment.Background
+        $prevmode = $segment.Blend
       }
     }
   }
+  
   if ( $retstr.Length -gt 0 )
   {
+    # Create the segment blend
+    $blend = Get-PromptBlendString     `
+      -Direction $prevmode             `
+      -FGLeft    $prevfg               `
+      -BGLeft    $prevbg               `
+      -FGRight   $PSColors.PSFore.Code `
+      -BGRight   $PSColors.PSBack.Code
+    $retstr += $blend
+
     # Unless the constructed string is empty, include a color
     # reset directive to clean up after any unruly segments
     $retstr += (Set-TerminalGraphics 0)
