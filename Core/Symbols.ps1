@@ -1,4 +1,4 @@
-﻿# PSCPSymbols.psm1
+﻿# Symbols.ps1
 #
 # Initialize the library of symbols, and symbol helper-functions.
 #
@@ -16,6 +16,12 @@
 #
 # TL;DR: Gimme a namedrop if it's useful, don't blame me if it wrecks your computer. Otherwise, have fun!
 #
+
+# Guarantee Settings Initialization
+if ( $global:PSCPSettings -eq $null )
+{
+  $global:PSCPSettings = @{}
+}
 
 # Set up symbol collections
 $global:Symbols = @{}
@@ -90,8 +96,8 @@ Export-ModuleMember -Function Set-PSCustomPromptEmblem
 # This is just for aesthetics, it has no real effect on anything.
 $global:PSCPSettings.Segments[ "Emblem" ] = @{
   Name       = "Emblem";
-  Background = $PSColors.Black.Code;
-  Foreground = $PSColors.DarkCyan.Code;
+  Background = $PSColors.ByName.Black.Code;
+  Foreground = $PSColors.ByName.DarkCyan.Code;
   Blend      = "None";
   Render     = [scriptblock]{
     return $global:PSCPSettings.Emblem

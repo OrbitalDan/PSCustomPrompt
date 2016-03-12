@@ -1,4 +1,4 @@
-﻿# PSCPSegments.psm1
+﻿# Segments.ps1
 #
 # Initialize the library of available prompt segments, and add a few default ones.
 #
@@ -17,7 +17,11 @@
 # TL;DR: Gimme a namedrop if it's useful, don't blame me if it wrecks your computer. Otherwise, have fun!
 #
 
-$global:PSCPSettings = @{}
+# Guarantee Settings Initialization
+if ( $global:PSCPSettings -eq $null )
+{
+  $global:PSCPSettings = @{}
+}
 
 # The global location where segments available to for prompt construction are stored
 $global:PSCPSettings.Segments = @{}
@@ -29,7 +33,7 @@ $global:PSCPSettings.Order = @()
 # to the default PowerShell prompt.
 $global:PSCPSettings.Segments[ "Path" ] = @{
   Name       = "Path";
-  Background = $PSColors.DarkCyan.Code;
+  Background = $PSColors.ByName.DarkCyan.Code;
   Foreground = $PSColors.PSFore.Code;
   Blend      = "Right";
   Render     = [scriptblock]{

@@ -36,8 +36,8 @@ $PSCPSettings.Segments.GitBranch.Background = $PSColors.DarkGray.Code
 # First, we create a new segment for the date
 $global:PSCPSettings.Segments[ "Date" ] = @{
   Name       = "Date";
-  Background = $PSColors.Black.Code;
-  Foreground = $PSColors.DarkCyan.Code;
+  Background = $PSColors.ByName.Black.Code;
+  Foreground = $PSColors.ByName.DarkCyan.Code;
   Blend      = "Right";
   Render     = [scriptblock]{
     return ( " {0} " -f [DateTime]::Now )
